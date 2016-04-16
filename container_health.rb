@@ -1,6 +1,3 @@
-#Author: Rui Mangass
-#This script check if a docker container is running or stopped
-# Arguments [riemman.server, hostname, containerID]
 require 'riemann/client'
 
 RIEMANN_SERVER = ARGV[0]
