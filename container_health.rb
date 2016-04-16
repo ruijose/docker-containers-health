@@ -19,7 +19,7 @@ while true
     metric: metric
   }
 
-  p "send event. Container state: #{container_state}"
+  p "Event sent. Container state: #{container_state}"
 
   sleep(120)
 end
