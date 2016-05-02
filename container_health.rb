@@ -1,4 +1,5 @@
 require 'riemann/client'
+require 'trollop'
 
 class DockerContainerStatus
   attr_reader :uri, :interval, :container_name, :host_name, :riemann
