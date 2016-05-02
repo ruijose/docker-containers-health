@@ -1,34 +1,53 @@
 require 'riemann/client'
 
-RIEMANN_SERVER = ARGV[0]
-HOSTNAME = ARGV[1]
-CONTAINER_NAME = ARGV[2]
-
-riemann_client = Riemann::Client.new host: RIEMANN_SERVER, port: 5555, timeout: 5
-
-while true
-
-  begin
-    riemann_client['true']
-  rescue Riemann::Client::TcpSocket::Error
-    riemann_client = Riemann::Client.new host: RIEMANN_SERVER, port: 5555, timeout: 5
-    p "reconnecting..."
+class DockerContainerStatus
+  attr_reder :uri, :interval, :container_name, :hostname
+  def initialize
+    args = command_line_args
+    @uri = args[:url]
+    @interval = args[:interval]
+    @container_name = args[:container_name]
   end
 
-  container_id = %x[sudo docker inspect --format '{{ .Id }}' #{CONTAINER_NAME}].chop
-  is_running = %x[sudo docker inspect -f {{.State.Running}} #{container_id}].chop
-  container_state = is_running == "true" ? "ok" : "critical"
-  metric = is_running == "true" ? 1 : 0
+  def send_events
+    while true
+      container_state = is_running == "true" ? "ok" : "critical"
+      metric = is_running == "true" ? 1 : 0
+      send_riemann_event(container_state, metric)
+      sleep(interval.to_i)
+    end
+  end
 
-  riemann_client << {
-    host: HOSTNAME,
-    service: "docker container health",
-    state: container_state,
-    metric: metric,
-    tags: ["docker", "app server"]
-  }
+  private
 
-  p "Event sent. Container state: #{container_state}"
+  def command_line_args
+    Trollop::options do
+      opt :hostname, "server name", :type => :string
+      opt :url, "Riemann server url", :type => :string
+      opt :interval, "Stats page", :type => :string
+      opt :container_name, "Docker container name", :type => :string
+    end
+  end
 
-  sleep(2)
+  def riemann_client
+    @riemann ||= Riemann::Client.new host: uri, port: 5555, timeout: 5
+  end
+
+  def send_riemann_event(container_state, metrics)
+    riemann << {
+      host: hostname
+      service: "docker container health",
+      state: container_state
+      metric: metric,
+      tags: ["#{service} #{hostname}", "containers status"]
+    }
+  end
+
+  def is_running
+    %x[sudo docker inspect -f {{.State.Running}} #{get_container_id}].chop
+  end
+
+  def get_container_id
+    %x[sudo docker inspect --format '{{ .Id }}' #{container_name}].chop
+  end
 end
