@@ -1,7 +1,7 @@
 require 'riemann/client'
 
 class DockerContainerStatus
-  attr_reder :uri, :interval, :container_name, :host_name
+  attr_reader :uri, :interval, :container_name, :host_name, :riemann
   def initialize
     args = command_line_args
     @host_name = args[:hostname]
