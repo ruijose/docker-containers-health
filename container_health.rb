@@ -51,3 +51,5 @@ class DockerContainerStatus
     %x[sudo docker inspect --format '{{ .Id }}' #{container_name}].chop
   end
 end
+
+DockerContainerStatus.new.send_events
