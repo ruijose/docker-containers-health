@@ -8,11 +8,12 @@ class DockerContainerStatus
     @host_name = args[:hostname]
     @uri = args[:url]
     @interval = args[:interval]
-    @container_name = args[:container_name]
+    @container_name = args[:containername]
   end
 
   def send_events
     while true
+      riemann_client
       container_state = is_running == "true" ? "ok" : "critical"
       metric = is_running == "true" ? 1 : 0
       send_riemann_event(container_state, metric)
@@ -27,7 +28,7 @@ class DockerContainerStatus
       opt :hostname, "server name", :type => :string
       opt :url, "Riemann server url", :type => :string
       opt :interval, "Stats page", :type => :string
-      opt :container_name, "Docker container name", :type => :string
+      opt :containername, "Docker container name", :type => :string
     end
   end
 
@@ -35,13 +36,13 @@ class DockerContainerStatus
     @riemann ||= Riemann::Client.new host: uri, port: 5555, timeout: 5
   end
 
-  def send_riemann_event(container_state, metrics)
+  def send_riemann_event(container_state, metric)
     riemann << {
-      host: hostname
+      host: host_name,
       service: "docker container health",
-      state: container_state
+      state: container_state,
       metric: metric,
-      tags: ["#{service} #{hostname}", "containers status"]
+      tags: ["#{host_name}", "containers status"]
     }
   end
 
